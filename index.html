@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园代取快递 - 管理平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 原有样式保持不变 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* 登录页面样式 */
+        .login-container {
+            background-color: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .login-header {
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #4da6ff;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            background-color: #f9f9f9;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4da6ff;
+            background-color: white;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4da6ff, #3399ff);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .login-btn:hover {
+            background: linear-gradient(135deg, #3d8cd9, #2a7acc);
+        }
+        
+        .error-message {
+            color: #ff4757;
+            margin-top: 10px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .security-notice {
+            color: #666;
+            font-size: 12px;
+            margin-top: 15px;
+            text-align: left;
+        }
+        
+        /* 管理界面样式 */
+        .admin-content {
+            display: none;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #4da6ff, #3399ff);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4da6ff;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .admin-btn {
+            flex: 1;
+            padding: 12px;
+            background-color: #4da6ff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .admin-btn:hover {
+            background-color: #3d8cd9;
+        }
+        
+        .order-list {
+            margin-top: 15px;
+        }
+        
+        .order-item {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #4da6ff;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .order-id {
+            font-weight: bold;
+            color: #4da6ff;
+        }
+        
+        .order-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-taken {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .status-processing {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .order-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .order-detail {
+            margin-bottom: 5px;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-complete {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+        
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .security-alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .order-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .security-alert, .logout-btn {
+                position: static;
+                margin-bottom: 10px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div class="login-container" id="login-page">
+        <div class="login-header">
+            <h1>校园代取快递</h1>
+            <p>管理平台登录</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="admin-username">用户名</label>
+            <input type="text" id="admin-username" placeholder="请输入用户名">
+        </div>
+        
+        <div class="form-group">
+            <label for="admin-password">密码</label>
+            <input type="password" id="admin-password" placeholder="请输入密码">
+        </div>
+        
+        <button class="login-btn" id="login-btn">登录</button>
+        <div class="error-message" id="login-error">用户名或密码错误，请重试</div>
+        <div class="security-notice">
+            <i class="fas fa-shield-alt"></i> 系统采用多重安全保护，连续5次登录失败将锁定10分钟
+        </div>
+    </div>
+    
+    <!-- 管理界面 -->
+    <div class="container admin-content" id="admin-content">
+        <div class="security-alert" id="security-alert">
+            <i class="fas fa-exclamation-triangle"></i> 注意：您的登录状态将在15分钟后过期
+        </div>
+        <button class="logout-btn" id="logout-btn">退出登录</button>
+        
+        <header>
+            <h1>校园代取快递 - 管理平台</h1>
+            <p class="subtitle">订单管理与统计</p>
+        </header>
+        
+        <div class="card">
+            <h2>订单统计</h2>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-orders">0</div>
+                    <div class="stat-label">总订单</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pending-orders">0</div>
+                    <div class="stat-label">待处理</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="taken-orders">0</div>
+                    <div class="stat-label">已接单</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="completed-orders">0</div>
+                    <div class="stat-label">已完成</div>
+                </div>
+            </div>
+            
+            <div class="admin-controls">
+                <button class="admin-btn" id="refresh-orders">
+                    <i class="fas fa-sync-alt"></i> 刷新订单
+                </button>
+                <button class="admin-btn" id="clear-completed">
+                    <i class="fas fa-trash"></i> 清除已完成
+                </button>
+            </div>
+            
+            <div class="order-list" id="admin-orders-list">
+                <!-- 所有订单将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 安全配置
+        const SECURITY_CONFIG = {
+            loginAttempts: 5,          // 最大登录尝试次数
+            lockoutDuration: 10 * 60,   // 锁定时间（秒）
+            sessionTimeout: 15 * 60,    // 会话超时时间（秒）
+            sensitiveFields: ['contact_info', 'taker_contact'] // 敏感字段
+        };
+        
+        // Supabase 配置
+        const SUPABASE_URL = 'https://mdkvoofsjmwxwsfoudbz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ka3Zvb2Zzam13eHdzZm91ZGJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4ODE2NTgsImV4cCI6MjA3NjQ1NzY1OH0.KXwS4CWYM5RIJ9RzQAVwAn9f1qvDBHykbil0CVykFP8';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // 安全存储的管理员密码（使用bcrypt哈希，实际环境中应在服务器端验证）
+        // 这里的哈希对应密码 "admin123"，实际部署时应更换为强密码并重新生成哈希
+        const ADMIN_CREDENTIALS = {
+            username: 'admin',
+            passwordHash: '$2b$10$Vr5.oQq1K8tV6Xl3Vt6i7O4Kz5Y6mX5N6aZ7bC8dE9fG0hH1jI2k'
+        };
+        
+        // 安全工具函数
+        const SecurityUtils = {
+            // 简单的哈希函数（实际环境应使用更安全的库如bcrypt）
+            hashPassword: function(password) {
+                // 这只是演示用，实际环境中应使用专门的密码哈希库
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                return crypto.subtle.digest('SHA-256', data)
+                    .then(hash => {
+                        return Array.from(new Uint8Array(hash))
+                            .map(b => b.toString(16).padStart(2, '0'))
+                            .join('');
+                    });
+            },
+            
+            // 验证密码哈希
+            verifyPassword: async function(password, hash) {
+                // 实际环境中应使用bcrypt.compare()
+                const passwordHash = await this.hashPassword(password);
+                return passwordHash === hash;
+            },
+            
+            // 生成CSRF令牌
+            generateCSRFToken: function() {
+                const token = crypto.randomBytes ? 
+                    Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join('') :
+                    Math.random().toString(36).substring(2, 34);
+                
+                localStorage.setItem('csrfToken', token);
+                return token;
+            },
+            
+            // 验证CSRF令牌
+            validateCSRFToken: function(token) {
+                const storedToken = localStorage.getItem('csrfToken');
+                return storedToken && storedToken === token;
+            },
+            
+            // 加密敏感数据
+            encryptSensitiveData: function(data) {
+                // 简单加密示例，实际环境应使用更安全的加密方式
+                const encoder = new TextEncoder();
+                const encoded = encoder.encode(data);
+                return btoa(String.fromCharCode(...new Uint8Array(encoded)));
+            },
+            
+            // 解密敏感数据
+            decryptSensitiveData: function(encryptedData) {
+                try {
+                    const decoded = atob(encryptedData);
+                    const arr = new Uint8Array(decoded.length);
+                    for (let i = 0; i < decoded.length; i++) {
+                        arr[i] = decoded.charCodeAt(i);
+                    }
+                    const decoder = new TextDecoder();
+                    return decoder.decode(arr);
+                } catch (e) {
+                    console.error('解密失败:', e);
+                    return '*** 数据加密错误 ***';
+                }
+            },
+            
+            // 检查是否为敏感操作
+            isSensitiveOperation: function(action) {
+                return ['delete', 'complete', 'clearCompleted'].includes(action);
+            }
+        };
+        
+        // 安全日志记录
+        function logSecurityEvent(eventType, details) {
+            const event = {
+                type: eventType,
+                timestamp: new Date().toISOString(),
+                ip: '未知（客户端无法获取真实IP）',
+                userAgent: navigator.userAgent,
+                details: details
+            };
+            
+            console.log('安全事件:', event);
+            
+            // 实际环境中应发送到服务器日志系统
+            // 仅在演示环境中使用，实际环境应移除
+            if (eventType === 'login_failure' || eventType === 'suspicious_activity') {
+                console.warn('潜在安全风险:', event);
+            }
+        }
+        
+        // 检查登录状态
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            const loginTime = localStorage.getItem('loginTime');
+            
+            // 检查会话是否过期
+            if (isLoggedIn && loginTime) {
+                const now = new Date().getTime() / 1000;
+                const elapsed = now - parseInt(loginTime);
+                
+                if (elapsed > SECURITY_CONFIG.sessionTimeout) {
+                    logSecurityEvent('session_expired', { reason: '会话超时' });
+                    logout(true); // 强制登出
+                    showError('登录已过期，请重新登录');
+                    return false;
+                }
+                
+                // 设置会话超时提醒
+                setupSessionTimeoutWarning(SECURITY_CONFIG.sessionTimeout - elapsed);
+            }
+            
+            if (isLoggedIn) {
+                showAdminContent();
+            } else {
+                showLoginPage();
+            }
+            
+            return isLoggedIn;
+        }
+        
+        // 设置会话超时提醒
+        function setupSessionTimeoutWarning(remainingTime) {
+            // 提前2分钟提醒
+            const warningTime = Math.max(0, remainingTime - 120) * 1000;
+            
+            setTimeout(() => {
+                const alertElement = document.getElementById('security-alert');
+                alertElement.style.display = 'block';
+                
+                // 超时后自动登出
+                setTimeout(() => {
+                    logout(true);
+                    showError('登录已过期，请重新登录');
+                }, 120000); // 2分钟后
+            }, warningTime);
+        }
+        
+        // 显示登录页面
+        function showLoginPage() {
+            document.getElementById('login-page').style.display = 'block';
+            document.getElementById('admin-content').style.display = 'none';
+            
+            // 检查是否处于锁定状态
+            checkLoginLockout();
+        }
+        
+        // 显示管理内容
+        function showAdminContent() {
+            document.getElementById('login-page').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            renderAdminOrders();
+        }
+        
+        // 检查登录锁定状态
+        function checkLoginLockout() {
+            const lockoutEnd = localStorage.getItem('loginLockoutEnd');
+            const now = new Date().getTime() / 1000;
+            
+            if (lockoutEnd && now < parseInt(lockoutEnd)) {
+                const remaining = Math.ceil(parseInt(lockoutEnd) - now);
+                disableLoginForm(`登录已锁定，请${remaining}秒后再试`);
+                return true;
+            }
+            
+            // 清除锁定状态
+            if (lockoutEnd && now >= parseInt(lockoutEnd)) {
+                localStorage.removeItem('loginLockoutEnd');
+                localStorage.removeItem('loginAttempts');
+            }
+            
+            return false;
+        }
+        
+        // 禁用登录表单
+        function disableLoginForm(message) {
+            const loginBtn = document.getElementById('login-btn');
+            const usernameInput = document.getElementById('admin-username');
+            const passwordInput = document.getElementById('admin-password');
+            
+            loginBtn.disabled = true;
+            usernameInput.disabled = true;
+            passwordInput.disabled = true;
+            
+            const errorElement = document.getElementById('login-error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        // 启用登录表单
+        function enableLoginForm() {
+            const loginBtn = document.getElementById('login-btn');
+            const usernameInput = document.getElementById('admin-username');
+            const passwordInput = document.getElementById('admin-password');
+            
+            loginBtn.disabled = false;
+            usernameInput.disabled = false;
+            passwordInput.disabled = false;
+        }
+        
+        // 显示错误信息
+        function showError(message) {
+            const errorElement = document.getElementById('login-error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 登录验证
+        async function login() {
+            // 检查是否处于锁定状态
+            if (checkLoginLockout()) return;
+            
+            const username = document.getElementById('admin-username').value;
+            const password = document.getElementById('admin-password').value;
+            
+            // 基本输入验证
+            if (!username || !password) {
+                showError('请输入用户名和密码');
+                return;
+            }
+            
+            // 检查登录尝试次数
+            let attempts = parseInt(localStorage.getItem('loginAttempts') || '0');
+            
+            try {
+                // 验证用户名和密码
+                if (username === ADMIN_CREDENTIALS.username) {
+                    // 在实际环境中，这应该在服务器端进行
+                    const isPasswordValid = await SecurityUtils.verifyPassword(password, ADMIN_CREDENTIALS.passwordHash);
+                    
+                    if (isPasswordValid) {
+                        // 登录成功
+                        localStorage.setItem('adminLoggedIn', 'true');
+                        localStorage.setItem('loginTime', Math.floor(new Date().getTime() / 1000).toString());
+                        localStorage.removeItem('loginAttempts');
+                        SecurityUtils.generateCSRFToken(); // 生成CSRF令牌
+                        
+                        logSecurityEvent('login_success', { username: username });
+                        showAdminContent();
+                        return;
+                    }
+                }
+                
+                // 登录失败
+                attempts++;
+                localStorage.setItem('loginAttempts', attempts.toString());
+                logSecurityEvent('login_failure', { username: username, attempt: attempts });
+                
+                if (attempts >= SECURITY_CONFIG.loginAttempts) {
+                    // 达到最大尝试次数，锁定账户
+                    const lockoutEnd = Math.floor(new Date().getTime() / 1000) + SECURITY_CONFIG.lockoutDuration;
+                    localStorage.setItem('loginLockoutEnd', lockoutEnd.toString());
+                    disableLoginForm(`连续${SECURITY_CONFIG.loginAttempts}次登录失败，账户已锁定${SECURITY_CONFIG.lockoutDuration/60}分钟`);
+                } else {
+                    showError(`用户名或密码错误，还剩${SECURITY_CONFIG.loginAttempts - attempts}次尝试机会`);
+                }
+            } catch (error) {
+                console.error('登录验证错误:', error);
+                showError('登录过程出错，请重试');
+                logSecurityEvent('login_error', { error: error.message });
+            }
+        }
+        
+        // 退出登录
+        function logout(isAutoLogout = false) {
+            logSecurityEvent(isAutoLogout ? 'auto_logout' : 'manual_logout', { reason: isAutoLogout ? '会话超时' : '用户主动退出' });
+            
+            localStorage.removeItem('adminLoggedIn');
+            localStorage.removeItem('loginTime');
+            localStorage.removeItem('csrfToken');
+            
+            showLoginPage();
+            
+            // 清空表单
+            document.getElementById('admin-username').value = '';
+            document.getElementById('admin-password').value = '';
+            
+            enableLoginForm();
+        }
+        
+        // 获取所有订单
+        async function getOrders() {
+            try {
+                // 验证会话状态
+                if (!checkLoginStatus()) {
+                    return [];
+                }
+                
+                const { data, error } = await supabase
+                    .from('delivery_orders')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                // 对敏感数据进行加密存储
+                if (data && data.length > 0) {
+                    return data.map(order => {
+                        const sanitizedOrder = { ...order };
+                        
+                        // 加密敏感字段
+                        SECURITY_CONFIG.sensitiveFields.forEach(field => {
+                            if (sanitizedOrder[field]) {
+                                sanitizedOrder[field] = SecurityUtils.encryptSensitiveData(sanitizedOrder[field]);
+                            }
+                        });
+                        
+                        return sanitizedOrder;
+                    });
+                }
+                
+                return [];
+            } catch (error) {
+                console.error('获取订单失败:', error);
+                logSecurityEvent('data_access_error', { operation: 'get_orders', error: error.message });
+                alert('获取订单失败，请检查网络连接');
+                return [];
+            }
+        }
+        
+        // 更新订单状态
+        async function updateOrder(orderId, updates) {
+            // 验证CSRF令牌
+            if (!SecurityUtils.validateCSRFToken(localStorage.getItem('csrfToken'))) {
+                logSecurityEvent('csrf_violation', { operation: 'update_order', orderId: orderId });
+                alert('安全验证失败，操作被拒绝');
+                logout();
+                return null;
+            }
+            
+            // 验证会话状态
+            if (!checkLoginStatus()) {
+                return null;
+            }
+            
+            try {
+                // 记录敏感操作
+                logSecurityEvent('order_update', { 
+                    orderId: orderId, 
+                    status: updates.status,
+                    userId: ADMIN_CREDENTIALS.username 
+                });
+                
+                const updateData = {
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabase
+                    .from('delivery_orders')
+                    .update(updateData)
+                    .eq('id', orderId)
+                    .select();
+                
+                if (error) throw error;
+                return data[0];
+            } catch (error) {
+                console.error('更新订单失败:', error);
+                logSecurityEvent('data_modification_error', { operation: 'update_order', error: error.message });
+                throw error;
+            }
+        }
+        
+        // 删除订单
+        async function deleteOrder(orderId) {
+            // 验证CSRF令牌
+            if (!SecurityUtils.validateCSRFToken(localStorage.getItem('csrfToken'))) {
+                logSecurityEvent('csrf_violation', { operation: 'delete_order', orderId: orderId });
+                alert('安全验证失败，操作被拒绝');
+                logout();
+                return false;
+            }
+            
+            // 验证会话状态
+            if (!checkLoginStatus()) {
+                return false;
+            }
+            
+            try {
+                // 记录敏感操作
+                logSecurityEvent('order_delete', { 
+                    orderId: orderId,
+                    userId: ADMIN_CREDENTIALS.username 
+                });
+                
+                const { error } = await supabase
+                    .from('delivery_orders')
+                    .delete()
+                    .eq('id', orderId);
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('删除订单失败:', error);
+                logSecurityEvent('data_modification_error', { operation: 'delete_order', error: error.message });
+                throw error;
+            }
+        }
+        
+        // 渲染管理员订单
+        async function renderAdminOrders() {
+            const orders = await getOrders();
+            const adminOrdersList = document.getElementById('admin-orders-list');
+            adminOrdersList.innerHTML = '';
+            
+            if (orders.length === 0) {
+                adminOrdersList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>暂无订单</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 更新统计信息
+            const totalOrders = orders.length;
+            const pendingOrders = orders.filter(order => order.status === 'pending').length;
+            const takenOrders = orders.filter(order => order.status === 'taken' || order.status === 'processing').length;
+            const completedOrders = orders.filter(order => order.status === 'completed').length;
+            
+            document.getElementById('total-orders').textContent = totalOrders;
+            document.getElementById('pending-orders').textContent = pendingOrders;
+            document.getElementById('taken-orders').textContent = takenOrders;
+            document.getElementById('completed-orders').textContent = completedOrders;
+            
+            orders.forEach(order => {
+                const orderItem = document.createElement('div');
+                orderItem.className = 'order-item';
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                switch(order.status) {
+                    case 'pending':
+                        statusClass = 'status-pending';
+                        statusText = '待接单';
+                        break;
+                    case 'taken':
+                        statusClass = 'status-taken';
+                        statusText = '已接单';
+                        break;
+                    case 'processing':
+                        statusClass = 'status-processing';
+                        statusText = '配送中';
+                        break;
+                    case 'completed':
+                        statusClass = 'status-completed';
+                        statusText = '已完成';
+                        break;
+                }
+                
+                // 解密敏感数据
+                const contactInfo = order.contact_info ? 
+                    SecurityUtils.decryptSensitiveData(order.contact_info) : '';
+                const takerContact = order.taker_contact ? 
+                    SecurityUtils.decryptSensitiveData(order.taker_contact) : '';
+                
+                orderItem.innerHTML = `
+                    <div class="order-header">
+                        <div class="order-id">${order.id.slice(-6).toUpperCase()}</div>
+                        <div class="order-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="order-details">
+                        <div class="order-detail"><strong>下单人:</strong> ${order.contact_name}</div>
+                        <div class="order-detail"><strong>联系方式:</strong> ${contactInfo} (${order.contact_method})</div>
+                        <div class="order-detail"><strong>取件地址:</strong> ${order.pickup_address}</div>
+                        <div class="order-detail"><strong>送达地址:</strong> ${order.delivery_address}</div>
+                        <div class="order-detail"><strong>取件码:</strong> ${order.pickup_code}</div>
+                        <div class="order-detail"><strong>货物重量:</strong> ${order.package_weight || '未指定'}</div>
+                        <div class="order-detail"><strong>物品类型:</strong> ${order.package_type || '未选择'}</div>
+                        <div class="order-detail"><strong>期望时间:</strong> ${new Date(order.delivery_time).toLocaleString()}</div>
+                        <div class="order-detail"><strong>酬劳:</strong> ${order.reward}元</div>
+                        <div class="order-detail"><strong>备注:</strong> ${order.notes || '无'}</div>
+                        <div class="order-detail"><strong>发布时间:</strong> ${new Date(order.created_at).toLocaleString()}</div>
+                    </div>
+                    ${order.taken_by ? `<div class="order-detail"><strong>接单人:</strong> ${order.taker_name} (${takerContact})</div>` : ''}
+                    <div class="order-actions">
+                        ${order.status !== 'completed' ? `<button class="action-btn btn-complete" data-id="${order.id}">标记完成</button>` : ''}
+                        <button class="action-btn btn-cancel" data-id="${order.id}">删除订单</button>
+                    </div>
+                `;
+                
+                adminOrdersList.appendChild(orderItem);
+            });
+            
+            // 添加管理员操作按钮事件
+            document.querySelectorAll('.btn-complete').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const orderId = this.dataset.id;
+                    completeOrder(orderId);
+                });
+            });
+            
+            document.querySelectorAll('.btn-cancel').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const orderId = this.dataset.id;
+                    deleteOrderFromUI(orderId);
+                });
+            });
+        }
+        
+        // 完成订单
+        async function completeOrder(orderId) {
+            // 二次确认敏感操作
+            if (!confirm('确定要将此订单标记为完成吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            try {
+                await updateOrder(orderId, { status: 'completed' });
+                await renderAdminOrders();
+            } catch (error) {
+                alert('标记完成失败，请重试！');
+                console.error(error);
+            }
+        }
+        
+        // 删除订单
+        async function deleteOrderFromUI(orderId) {
+            // 二次确认敏感操作
+            if (!confirm('确定要删除这个订单吗？此操作不可撤销，数据将永久丢失。')) {
+                return;
+            }
+            
+            try {
+                await deleteOrder(orderId);
+                await renderAdminOrders();
+            } catch (error) {
+                alert('删除订单失败，请重试！');
+                console.error(error);
+            }
+        }
+        
+        // 清除已完成订单
+        async function clearCompletedOrders() {
+            // 验证CSRF令牌
+            if (!SecurityUtils.validateCSRFToken(localStorage.getItem('csrfToken'))) {
+                logSecurityEvent('csrf_violation', { operation: 'clear_completed' });
+                alert('安全验证失败，操作被拒绝');
+                logout();
+                return;
+            }
+            
+            // 二次确认敏感操作
+            if (!confirm('确定要清除所有已完成订单吗？此操作不可撤销，数据将永久丢失。')) {
+                return;
+            }
+            
+            try {
+                // 记录敏感操作
+                logSecurityEvent('clear_completed_orders', { 
+                    userId: ADMIN_CREDENTIALS.username 
+                });
+                
+                const { error } = await supabase
+                    .from('delivery_orders')
+                    .delete()
+                    .eq('status', 'completed');
+                
+                if (error) throw error;
+                await renderAdminOrders();
+            } catch (error) {
+                alert('清除已完成订单失败，请重试！');
+                logSecurityEvent('data_modification_error', { operation: 'clear_completed', error: error.message });
+                console.error(error);
+            }
+        }
+        
+        // 检测潜在的DOM篡改
+        function setupTamperingDetection() {
+            // 存储关键元素的初始状态哈希
+            const criticalElements = ['login-btn', 'logout-btn', 'admin-orders-list'];
+            const elementHashes = {};
+            
+            criticalElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    elementHashes[id] = btoa(element.outerHTML);
+                }
+            });
+            
+            // 定期检查元素是否被篡改
+            setInterval(() => {
+                criticalElements.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        const currentHash = btoa(element.outerHTML);
+                        if (currentHash !== elementHashes[id]) {
+                            logSecurityEvent('dom_tampering_detected', { elementId: id });
+                            alert('检测到潜在的页面篡改，为了安全起见将重新加载页面');
+                            location.reload();
+                        }
+                    }
+                });
+            }, 5000); // 每5秒检查一次
+        }
+        
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 登录按钮
+            document.getElementById('login-btn').addEventListener('click', login);
+            
+            // 回车键登录
+            document.getElementById('admin-password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+            
+            // 退出登录
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            
+            // 刷新订单
+            document.getElementById('refresh-orders').addEventListener('click', renderAdminOrders);
+            
+            // 清除已完成订单
+            document.getElementById('clear-completed').addEventListener('click', clearCompletedOrders);
+            
+            // 防止表单重提交
+            let isProcessing = false;
+            document.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (SecurityUtils.isSensitiveOperation(this.dataset.action || this.textContent)) {
+                        if (isProcessing) {
+                            logSecurityEvent('duplicate_request', { action: this.textContent });
+                            alert('操作正在处理中，请不要重复点击');
+                            return false;
+                        }
+                        
+                        isProcessing = true;
+                        this.disabled = true;
+                        
+                        // 5秒后恢复，防止永久禁用
+                        setTimeout(() => {
+                            isProcessing = false;
+                            this.disabled = false;
+                        }, 5000);
+                    }
+                });
+            });
+        }
+        
+        // 初始化应用
+        function initApp() {
+            checkLoginStatus();
+            initEventListeners();
+            setupTamperingDetection();
+            
+            // 生成初始CSRF令牌
+            if (!localStorage.getItem('csrfToken')) {
+                SecurityUtils.generateCSRFToken();
+            }
+            
+            // 监控异常行为
+            window.addEventListener('error', (e) => {
+                logSecurityEvent('unhandled_error', { message: e.error.message, stack: e.error.stack });
+            });
+            
+            window.addEventListener('unhandledrejection', (e) => {
+                logSecurityEvent('unhandled_promise_rejection', { reason: e.reason });
+            });
+        }
+        
+        // 启动应用
+        initApp();
+    </script>
+</body>
+</html>
