@@ -264,6 +264,10 @@
             border-left: 4px solid #4da6ff;
         }
         
+        .order-item.errand {
+            border-left-color: #07c160;
+        }
+        
         .order-header {
             display: flex;
             justify-content: space-between;
@@ -273,6 +277,21 @@
         .order-id {
             font-weight: bold;
             color: #4da6ff;
+        }
+        
+        .order-type {
+            display: inline-block;
+            padding: 2px 8px;
+            background-color: #f0f8ff;
+            color: #4da6ff;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .order-type.errand {
+            background-color: #e8f7ef;
+            color: #07c160;
         }
         
         .order-status {
@@ -481,7 +500,7 @@
         <button class="logout-btn" id="logout-btn">退出登录</button>
         
         <header>
-            <h1>校园代取快递 - 管理平台</h1>
+            <h1>校园服务平台 - 管理平台</h1>
             <p class="subtitle">订单管理与统计</p>
         </header>
         
@@ -789,16 +808,40 @@
             // 在实际应用中，这里应该将安全事件发送到服务器记录
         }
         
-        // 获取所有订单
+        // 获取所有订单（包括代取快递和跑腿任务）
         async function getOrders() {
             try {
-                const { data, error } = await supabase
-                    .from('delivery_orders')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                // 同时获取两种订单
+                const [deliveryResult, errandResult] = await Promise.all([
+                    supabase
+                        .from('delivery_orders')
+                        .select('*')
+                        .order('created_at', { ascending: false }),
+                    supabase
+                        .from('errand_orders')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                ]);
+
+                if (deliveryResult.error) throw deliveryResult.error;
+                if (errandResult.error) throw errandResult.error;
+
+                // 合并订单并添加类型标识
+                const deliveryOrders = (deliveryResult.data || []).map(order => ({
+                    ...order,
+                    order_type: 'delivery'
+                }));
                 
-                if (error) throw error;
-                return data || [];
+                const errandOrders = (errandResult.data || []).map(order => ({
+                    ...order,
+                    order_type: 'errand'
+                }));
+
+                // 合并并排序
+                const allOrders = [...deliveryOrders, ...errandOrders]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                return allOrders;
             } catch (error) {
                 console.error('获取订单失败:', error);
                 alert('获取订单失败，请检查网络连接');
@@ -807,25 +850,28 @@
         }
         
         // 更新订单状态
-        async function updateOrder(orderId, updates) {
+        async function updateOrder(orderId, orderType, updates) {
             try {
                 const updateData = {
                     ...updates,
                     updated_at: new Date().toISOString()
                 };
                 
+                // 根据订单类型选择表
+                const tableName = orderType === 'delivery' ? 'delivery_orders' : 'errand_orders';
+                
                 const { data, error } = await supabase
-                    .from('delivery_orders')
+                    .from(tableName)
                     .update(updateData)
                     .eq('id', orderId)
                     .select();
-                
+
                 if (error) throw error;
-                
+
                 // 记录操作日志
                 const currentUser = localStorage.getItem('currentUser');
                 logSecurityEvent('order_updated', currentUser);
-                
+
                 return data[0];
             } catch (error) {
                 console.error('更新订单失败:', error);
@@ -834,19 +880,22 @@
         }
         
         // 删除订单
-        async function deleteOrder(orderId) {
+        async function deleteOrder(orderId, orderType) {
             try {
+                // 根据订单类型选择表
+                const tableName = orderType === 'delivery' ? 'delivery_orders' : 'errand_orders';
+                
                 const { error } = await supabase
-                    .from('delivery_orders')
+                    .from(tableName)
                     .delete()
                     .eq('id', orderId);
-                
+
                 if (error) throw error;
-                
+
                 // 记录操作日志
                 const currentUser = localStorage.getItem('currentUser');
                 logSecurityEvent('order_deleted', currentUser);
-                
+
                 return true;
             } catch (error) {
                 console.error('删除订单失败:', error);
@@ -885,6 +934,11 @@
                 const orderItem = document.createElement('div');
                 orderItem.className = 'order-item';
                 
+                // 根据订单类型设置不同的边框颜色
+                if (order.order_type === 'errand') {
+                    orderItem.classList.add('errand');
+                }
+
                 let statusClass = '';
                 let statusText = '';
                 
@@ -907,28 +961,44 @@
                         break;
                 }
                 
+                // 根据订单类型显示不同的内容
+                const isDelivery = order.order_type === 'delivery';
+                
                 orderItem.innerHTML = `
                     <div class="order-header">
-                        <div class="order-id">${order.id.slice(-6).toUpperCase()}</div>
+                        <div class="order-id">
+                            ${order.id.slice(-6).toUpperCase()}
+                            <span class="order-type ${isDelivery ? '' : 'errand'}">
+                                ${isDelivery ? '[快递]' : '[跑腿]'}
+                            </span>
+                        </div>
                         <div class="order-status ${statusClass}">${statusText}</div>
                     </div>
                     <div class="order-details">
-                        <div class="order-detail"><strong>下单人:</strong> ${order.contact_name}</div>
-                        <div class="order-detail"><strong>联系方式:</strong> ${order.contact_info} (${order.contact_method})</div>
-                        <div class="order-detail"><strong>取件地址:</strong> ${order.pickup_address}</div>
-                        <div class="order-detail"><strong>送达地址:</strong> ${order.delivery_address}</div>
-                        <div class="order-detail"><strong>取件码:</strong> ${order.pickup_code}</div>
-                        <div class="order-detail"><strong>货物重量:</strong> ${order.package_weight || '未指定'}</div>
-                        <div class="order-detail"><strong>物品类型:</strong> ${order.package_type || '未选择'}</div>
-                        <div class="order-detail"><strong>期望时间:</strong> ${new Date(order.delivery_time).toLocaleString()}</div>
+                        ${isDelivery ? `
+                            <div class="order-detail"><strong>下单人:</strong> ${order.contact_name}</div>
+                            <div class="order-detail"><strong>联系方式:</strong> ${order.contact_info} (${order.contact_type || order.contact_method})</div>
+                            <div class="order-detail"><strong>取件地址:</strong> ${order.pickup_address}</div>
+                            <div class="order-detail"><strong>送达地址:</strong> ${order.delivery_address}</div>
+                            <div class="order-detail"><strong>取件码:</strong> ${order.pickup_code}</div>
+                            <div class="order-detail"><strong>期望时间:</strong> ${new Date(order.delivery_time).toLocaleString()}</div>
+                        ` : `
+                            <div class="order-detail"><strong>任务标题:</strong> ${order.title}</div>
+                            <div class="order-detail"><strong>任务描述:</strong> ${order.description}</div>
+                            <div class="order-detail"><strong>取物地点:</strong> ${order.pickup_location}</div>
+                            <div class="order-detail"><strong>送达地点:</strong> ${order.delivery_location}</div>
+                            <div class="order-detail"><strong>联系人:</strong> ${order.contact_name}</div>
+                            <div class="order-detail"><strong>联系方式:</strong> ${order.contact_info} (${order.contact_type})</div>
+                            <div class="order-detail"><strong>截止时间:</strong> ${new Date(order.deadline).toLocaleString()}</div>
+                        `}
                         <div class="order-detail"><strong>酬劳:</strong> ${order.reward}元</div>
                         <div class="order-detail"><strong>备注:</strong> ${order.notes || '无'}</div>
                         <div class="order-detail"><strong>发布时间:</strong> ${new Date(order.created_at).toLocaleString()}</div>
                     </div>
-                    ${order.taken_by ? `<div class="order-detail"><strong>接单人:</strong> ${order.taker_name} (${order.taker_contact})</div>` : ''}
+                    ${order.taken_by ? `<div class="order-detail"><strong>接单人:</strong> ${order.taker_name || order.taken_by} (${order.taker_contact})</div>` : ''}
                     <div class="order-actions">
-                        ${order.status !== 'completed' ? `<button class="action-btn btn-complete" data-id="${order.id}">标记完成</button>` : ''}
-                        <button class="action-btn btn-cancel" data-id="${order.id}">删除订单</button>
+                        ${order.status !== 'completed' ? `<button class="action-btn btn-complete" data-id="${order.id}" data-type="${order.order_type}">标记完成</button>` : ''}
+                        <button class="action-btn btn-cancel" data-id="${order.id}" data-type="${order.order_type}">删除订单</button>
                     </div>
                 `;
                 
@@ -939,22 +1009,24 @@
             document.querySelectorAll('.btn-complete').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const orderId = this.dataset.id;
-                    completeOrder(orderId);
+                    const orderType = this.dataset.type;
+                    completeOrder(orderId, orderType);
                 });
             });
             
             document.querySelectorAll('.btn-cancel').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const orderId = this.dataset.id;
-                    deleteOrderFromUI(orderId);
+                    const orderType = this.dataset.type;
+                    deleteOrderFromUI(orderId, orderType);
                 });
             });
         }
         
         // 完成订单
-        async function completeOrder(orderId) {
+        async function completeOrder(orderId, orderType) {
             try {
-                await updateOrder(orderId, { status: 'completed' });
+                await updateOrder(orderId, orderType, { status: 'completed' });
                 await renderAdminOrders();
             } catch (error) {
                 alert('标记完成失败，请重试！');
@@ -963,10 +1035,10 @@
         }
         
         // 删除订单
-        async function deleteOrderFromUI(orderId) {
+        async function deleteOrderFromUI(orderId, orderType) {
             if (confirm('确定要删除这个订单吗？')) {
                 try {
-                    await deleteOrder(orderId);
+                    await deleteOrder(orderId, orderType);
                     await renderAdminOrders();
                 } catch (error) {
                     alert('删除订单失败，请重试！');
@@ -979,17 +1051,25 @@
         async function clearCompletedOrders() {
             if (confirm('确定要清除所有已完成订单吗？')) {
                 try {
-                    const { error } = await supabase
-                        .from('delivery_orders')
-                        .delete()
-                        .eq('status', 'completed');
-                    
-                    if (error) throw error;
-                    
+                    // 同时清除两个表中的已完成订单
+                    const [deliveryResult, errandResult] = await Promise.all([
+                        supabase
+                            .from('delivery_orders')
+                            .delete()
+                            .eq('status', 'completed'),
+                        supabase
+                            .from('errand_orders')
+                            .delete()
+                            .eq('status', 'completed')
+                    ]);
+
+                    if (deliveryResult.error) throw deliveryResult.error;
+                    if (errandResult.error) throw errandResult.error;
+
                     // 记录操作日志
                     const currentUser = localStorage.getItem('currentUser');
                     logSecurityEvent('clear_completed_orders', currentUser);
-                    
+
                     await renderAdminOrders();
                 } catch (error) {
                     alert('清除已完成订单失败，请重试！');
