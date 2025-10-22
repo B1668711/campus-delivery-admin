@@ -110,6 +110,7 @@
             justify-content: center;
             position: relative;
             overflow: hidden;
+            min-width: 120px;
         }
         
         .captcha-display span {
@@ -660,10 +661,10 @@
             captchaDisplay.style.backgroundImage = generateNoiseLines();
         }
         
-        // 生成背景干扰线
+        // 生成背景干扰线 - 修复版本
         function generateNoiseLines() {
             const lineCount = 5;
-            let lines = '';
+            let lines = [];
             
             for (let i = 0; i < lineCount; i++) {
                 const startX = Math.random() * 100;
@@ -672,10 +673,10 @@
                 const endY = Math.random() * 100;
                 const color = `rgba(${Math.floor(Math.random() * 100)}, ${Math.floor(Math.random() * 100)}, ${Math.floor(Math.random() * 100)}, 0.3)`;
                 
-                lines += `linear-gradient(${Math.random() * 360}deg, transparent ${startX}%, ${color} ${startY}%, transparent ${endX}%), `;
+                lines.push(`linear-gradient(${Math.random() * 360}deg, transparent ${startX}%, ${color} ${startY}%, transparent ${endX}%)`);
             }
             
-            return lines.slice(0, -2); // 移除最后的逗号和空格
+            return lines.join(', ');
         }
         
         // 检查登录状态
@@ -1070,4 +1071,87 @@
             const role = document.getElementById('admin-role').value;
             
             if (!username || !password) {
-                alert('用户名
+                alert('用户名和密码不能为空');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            if (ADMIN_CREDENTIALS[username] && !document.getElementById('new-username').disabled) {
+                alert('用户名已存在');
+                return;
+            }
+            
+            // 保存管理员信息
+            ADMIN_CREDENTIALS[username] = {
+                password: password,
+                role: role,
+                name: `管理员${Object.keys(ADMIN_CREDENTIALS).length}`
+            };
+            
+            // 记录操作日志
+            const currentUser = localStorage.getItem('currentUser');
+            logSecurityEvent('admin_updated', currentUser);
+            
+            renderAdminList();
+            cancelAdmin();
+        }
+        
+        // 取消编辑管理员
+        function cancelAdmin() {
+            document.getElementById('admin-form').style.display = 'none';
+            document.getElementById('new-username').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            document.getElementById('admin-role').value = 'admin';
+            document.getElementById('new-username').disabled = false;
+        }
+        
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 登录按钮
+            document.getElementById('login-btn').addEventListener('click', login);
+            
+            // 回车键登录
+            document.getElementById('admin-password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+            
+            // 验证码刷新
+            document.getElementById('captcha-display').addEventListener('click', generateCaptcha);
+            
+            // 退出登录
+            document.getElementById('logout-btn').addEventListener('click', logout);
+            
+            // 刷新订单
+            document.getElementById('refresh-orders').addEventListener('click', renderAdminOrders);
+            
+            // 清除已完成订单
+            document.getElementById('clear-completed').addEventListener('click', clearCompletedOrders);
+            
+            // 管理员管理
+            document.getElementById('add-admin-btn').addEventListener('click', function() {
+                document.getElementById('admin-form').style.display = 'grid';
+                document.getElementById('new-username').disabled = false;
+            });
+            
+            document.getElementById('save-admin').addEventListener('click', saveAdmin);
+            document.getElementById('cancel-admin').addEventListener('click', cancelAdmin);
+        }
+        
+        // 初始化应用
+        function initApp() {
+            checkLoginStatus();
+            initEventListeners();
+        }
+        
+        // 启动应用
+        initApp();
+    </script>
+</body>
+</html>
