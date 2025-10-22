@@ -70,7 +70,7 @@
             color: #333;
         }
         
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 14px;
             border: 1px solid #e0e0e0;
@@ -79,7 +79,7 @@
             background-color: #f9f9f9;
         }
         
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #4da6ff;
             background-color: white;
@@ -1070,87 +1070,4 @@
             const role = document.getElementById('admin-role').value;
             
             if (!username || !password) {
-                alert('用户名和密码不能为空');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                alert('两次输入的密码不一致');
-                return;
-            }
-            
-            if (ADMIN_CREDENTIALS[username] && !document.getElementById('new-username').disabled) {
-                alert('用户名已存在');
-                return;
-            }
-            
-            // 保存管理员信息
-            ADMIN_CREDENTIALS[username] = {
-                password: password,
-                role: role,
-                name: `管理员${Object.keys(ADMIN_CREDENTIALS).length}`
-            };
-            
-            // 记录操作日志
-            const currentUser = localStorage.getItem('currentUser');
-            logSecurityEvent('admin_updated', currentUser);
-            
-            renderAdminList();
-            cancelAdmin();
-        }
-        
-        // 取消编辑管理员
-        function cancelAdmin() {
-            document.getElementById('admin-form').style.display = 'none';
-            document.getElementById('new-username').value = '';
-            document.getElementById('new-password').value = '';
-            document.getElementById('confirm-password').value = '';
-            document.getElementById('admin-role').value = 'admin';
-            document.getElementById('new-username').disabled = false;
-        }
-        
-        // 初始化事件监听器
-        function initEventListeners() {
-            // 登录按钮
-            document.getElementById('login-btn').addEventListener('click', login);
-            
-            // 回车键登录
-            document.getElementById('admin-password').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    login();
-                }
-            });
-            
-            // 验证码刷新
-            document.getElementById('captcha-display').addEventListener('click', generateCaptcha);
-            
-            // 退出登录
-            document.getElementById('logout-btn').addEventListener('click', logout);
-            
-            // 刷新订单
-            document.getElementById('refresh-orders').addEventListener('click', renderAdminOrders);
-            
-            // 清除已完成订单
-            document.getElementById('clear-completed').addEventListener('click', clearCompletedOrders);
-            
-            // 管理员管理
-            document.getElementById('add-admin-btn').addEventListener('click', function() {
-                document.getElementById('admin-form').style.display = 'grid';
-                document.getElementById('new-username').disabled = false;
-            });
-            
-            document.getElementById('save-admin').addEventListener('click', saveAdmin);
-            document.getElementById('cancel-admin').addEventListener('click', cancelAdmin);
-        }
-        
-        // 初始化应用
-        function initApp() {
-            checkLoginStatus();
-            initEventListeners();
-        }
-        
-        // 启动应用
-        initApp();
-    </script>
-</body>
-</html>
+                alert('用户名
